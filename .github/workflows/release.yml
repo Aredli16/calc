@@ -77,6 +77,9 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
+      - name: Archive Release
+        run: zip -r dist.zip dist
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -85,6 +88,4 @@ jobs:
           body: ${{ inputs.notes }}
           generate_release_notes: ${{ inputs.notes == '' }}
           make_latest: true
-          files: |
-            dist/index.html
-            dist/assets/*
+          files: dist.zip
