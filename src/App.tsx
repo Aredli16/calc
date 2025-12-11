@@ -4,7 +4,7 @@ import GraphView from "./components/GraphView";
 import "./App.css";
 
 // Helper type for buttons
-type ButtonType = "number" | "operator" | "action" | "scientific";
+type ButtonType = "number" | "operator" | "action" | "scientific" | "variable";
 
 interface CalcButton {
   label: string;
@@ -46,9 +46,18 @@ const App: React.FC = () => {
           break;
       }
     } else if (type === "scientific") {
-      // In graph mode, X is a variable, not a multiplication symbol (usually)
-      // But for simplicity, we treat inputs same way
       handleScientific(value);
+    } else if (type === "variable") {
+      // Treat variable like a number (append directly) but check for implicit multiply
+      setInput((prev) => {
+        if (prev === "0") return value;
+        // if prev ends with number or ), add *
+        const lastChar = prev.slice(-1);
+        if (/[0-9)]/.test(lastChar)) {
+          return prev + "*" + value;
+        }
+        return prev + value;
+      });
     } else {
       // Numbers and Operators
       setInput((prev) => {
@@ -147,7 +156,7 @@ const App: React.FC = () => {
     { label: "e", value: "e", type: "number" },
     { label: "(", value: "(", type: "number" },
     { label: ")", value: ")", type: "number" },
-    { label: "x", value: "x", type: "scientific" },
+    { label: "x", value: "x", type: "variable" },
   ];
 
   return (
