@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Copy, History, Sparkles, Calculator, X } from "lucide-react";
 import "./App.css";
 
@@ -65,10 +65,10 @@ const App: React.FC = () => {
     });
   }
 
-  const calculateResult = (finalize: boolean = false) => {
+  const calculateResult = useCallback((finalize: boolean = false) => {
     try {
       // Replace symbols for JS eval
-      let expression = input
+      const expression = input
         .replace(/×/g, "*")
         .replace(/÷/g, "/")
         .replace(/π/g, "Math.PI")
@@ -94,10 +94,10 @@ const App: React.FC = () => {
       } else {
         setResult(formattedResult);
       }
-    } catch (e) {
+    } catch {
       if (finalize) setResult("Error");
     }
-  };
+  }, [input]);
 
   // Auto-calculate preview
   useEffect(() => {
@@ -106,9 +106,9 @@ const App: React.FC = () => {
       const timer = setTimeout(() => calculateResult(false), 300);
       return () => clearTimeout(timer);
     } else {
-      setResult("");
+      setTimeout(() => setResult(""), 0);
     }
-  }, [input]);
+  }, [input, calculateResult]);
 
   const standardButtons: CalcButton[] = [
     { label: "C", value: "AC", type: "action" },
@@ -164,7 +164,7 @@ const App: React.FC = () => {
           <div className="history-preview">
             {result && <span className="preview-value">{result}</span>}
           </div>
-          <div className={`main-input ${input.length > 12 ? 'small-text' : ''}`}>
+          <div className={`main-input ${input.length > 12 ? 'small-text' : ''}`} data-testid="display">
             {input}
           </div>
         </div>
