@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Copy, History, Sparkles, Calculator, X } from "lucide-react";
+import { Copy, History, Sparkles, Calculator, X, Activity } from "lucide-react";
+import GraphView from "./components/GraphView";
 import "./App.css";
 
 // Helper type for buttons
@@ -13,9 +14,10 @@ interface CalcButton {
 }
 
 const App: React.FC = () => {
+  type Mode = "standard" | "scientific" | "graph";
+  const [mode, setMode] = useState<Mode>("standard");
   const [input, setInput] = useState<string>("0");
   const [result, setResult] = useState<string>("");
-  const [isScientific, setIsScientific] = useState<boolean>(false);
   const [history, setHistory] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState<boolean>(false);
 
@@ -44,6 +46,8 @@ const App: React.FC = () => {
           break;
       }
     } else if (type === "scientific") {
+      // In graph mode, X is a variable, not a multiplication symbol (usually)
+      // But for simplicity, we treat inputs same way
       handleScientific(value);
     } else {
       // Numbers and Operators
@@ -143,6 +147,7 @@ const App: React.FC = () => {
     { label: "e", value: "e", type: "number" },
     { label: "(", value: "(", type: "number" },
     { label: ")", value: ")", type: "number" },
+    { label: "x", value: "x", type: "scientific" },
   ];
 
   return (
@@ -150,9 +155,20 @@ const App: React.FC = () => {
       <div className="glass-card">
         {/* Header */}
         <div className="header">
-          <div className="mode-toggle" onClick={() => setIsScientific(!isScientific)}>
-            {isScientific ? <Calculator size={18} /> : <Sparkles size={18} />}
-            <span>{isScientific ? "Scientifique" : "Standard"}</span>
+          <div className="mode-toggle" onClick={() => {
+            if (mode === "standard") setMode("scientific");
+            else if (mode === "scientific") setMode("graph");
+            else setMode("standard");
+          }}>
+            {mode === "standard" && <Sparkles size={18} />}
+            {mode === "scientific" && <Calculator size={18} />}
+            {mode === "graph" && <Activity size={18} />}
+
+            <span>
+              {mode === "standard" && "Standard"}
+              {mode === "scientific" && "Scientifique"}
+              {mode === "graph" && "Graphique"}
+            </span>
           </div>
           <button className="icon-btn" onClick={() => setShowHistory(true)}>
             <History size={20} />
@@ -161,16 +177,21 @@ const App: React.FC = () => {
 
         {/* Display */}
         <div className="display-area">
-          <div className="history-preview">
-            {result && <span className="preview-value">{result}</span>}
-          </div>
+          {mode === "graph" ? (
+            <GraphView expression={input} />
+          ) : (
+            <div className="history-preview">
+              {result && <span className="preview-value">{result}</span>}
+            </div>
+          )}
+
           <div className={`main-input ${input.length > 12 ? 'small-text' : ''}`} data-testid="display">
             {input}
           </div>
         </div>
 
         {/* Scientific Pad (Collapsible) */}
-        <div className={`scientific-pad ${isScientific ? 'open' : ''}`}>
+        <div className={`scientific-pad ${mode !== 'standard' ? 'open' : ''}`}>
           {scientificButtons.map((btn) => (
             <button
               key={btn.label}
