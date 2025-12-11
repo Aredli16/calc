@@ -24,13 +24,16 @@ jobs:
       contents: write
       pages: write
       id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0 # Fetch all history for tags
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -52,25 +55,28 @@ jobs:
       - name: Run Unit Tests
         run: npm run test:run
 
+      - name: Bump Version
+        id: version
+        # Bump version first so the build includes the new version info if needed
+        run: |
+          npm version ${{ inputs.bump }} -m "chore(release): %s"
+          echo "tag=$(git describe --abbrev=0 --tags)" >> $GITHUB_OUTPUT
+
       - name: Build for Production
         run: npm run build
 
-      - name: Bump Version & Push
-        id: version
-        run: |
-          npm version ${{ inputs.bump }} -m "chore(release): %s"
-          git push origin main --follow-tags
-          echo "tag=$(git describe --abbrev=0 --tags)" >> $GITHUB_OUTPUT
+      - name: Push Changes
+        run: git push origin main --follow-tags
 
-      # Deploy to GitHub Pages
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          folder: dist
-          branch: gh-pages
-          clean: true
+          path: dist
 
-      # Create GitHub Release
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
