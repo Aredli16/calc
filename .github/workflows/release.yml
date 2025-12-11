@@ -1,12 +1,17 @@
-name: Manual Release and Deploy
+name: Release and Deploy (NPM Version)
 
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version tag (e.g. v1.0.0)'
+      bump:
+        description: 'SemVer Bump Type'
         required: true
-        type: string
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
       notes:
         description: 'Release notes (optional)'
         required: false
@@ -23,12 +28,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0 # Fetch all history for tags
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
+
+      - name: Configure Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Install dependencies
         run: npm ci
@@ -42,15 +55,12 @@ jobs:
       - name: Build for Production
         run: npm run build
 
-      - name: Configure Git User
+      - name: Bump Version & Push
+        id: version
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Create and Push Tag
-        run: |
-          git tag ${{ inputs.version }}
-          git push origin ${{ inputs.version }}
+          npm version ${{ inputs.bump }} -m "chore(release): %s"
+          git push origin main --follow-tags
+          echo "tag=$(git describe --abbrev=0 --tags)" >> $GITHUB_OUTPUT
 
       # Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
@@ -64,8 +74,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.version }}
-          name: Release ${{ inputs.version }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
           body: ${{ inputs.notes }}
           generate_release_notes: ${{ inputs.notes == '' }}
           make_latest: true
