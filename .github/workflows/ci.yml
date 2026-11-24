@@ -8,7 +8,8 @@ on:
 
 jobs:
   test-and-build:
-    runs-on: ubuntu-latest
+    # Épinglé : Playwright 1.57 ne prend pas en charge ubuntu-latest (26.04)
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
